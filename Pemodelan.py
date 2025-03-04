@@ -11,6 +11,7 @@ SERVICE_TIME = (5, 10)  # Waktu layanan dalam rentang (min, max) menit
 NUM_CUSTOMERS = 100  # Jumlah pelanggan maksimum
 
 data = []  # List untuk menyimpan data pelanggan
+waiting_times = []  # List untuk menyimpan waktu tunggu pelanggan
 booth_status = {i: 'Idle' for i in range(1, NUM_BOOTH + 1)}  # Status booth
 START_TIME = datetime.strptime("08:00", "%H:%M")  # Simulasi dimulai pukul 08:00
 
@@ -24,6 +25,9 @@ def customer(env, name, booth, booth_id):
         yield request  # Menunggu giliran
         wait_time = round(env.now - queue_enter_time, 1)  # Hitung waktu tunggu dengan benar
         
+        # Simpan waktu tunggu ke list
+        waiting_times.append(wait_time)
+        
         # Booth menjadi busy
         booth_status[booth_id] = 'Busy'
         
@@ -32,12 +36,8 @@ def customer(env, name, booth, booth_id):
         departure_time = START_TIME + timedelta(minutes=env.now)
         departure_time_str = departure_time.strftime("%H:%M")
         
-        # Hitung finish time
-        finish_time = departure_time + timedelta(minutes=service_duration)
-        finish_time_str = finish_time.strftime("%H:%M")
-        
         # Simpan data ke dalam list sebelum mengubah status booth kembali ke Idle
-        data.append([name, arrival_time_str, f"{wait_time} min", departure_time_str, finish_time_str, f"{service_duration} min", booth_id, booth_status[booth_id]])
+        data.append([name, arrival_time_str, f"{wait_time} min", departure_time_str, f"{service_duration} min", booth_id, booth_status[booth_id]])
         
         # Booth menjadi idle kembali setelah layanan selesai
         booth_status[booth_id] = 'Idle'
@@ -59,8 +59,15 @@ def main():
     env.run()
     
     # Buat dataframe dari hasil simulasi
-    df = pd.DataFrame(data, columns=['Customer', 'Arrival Time', 'Wait Time', 'Departure Time', 'Finish Time', 'Service Duration', 'Booth', 'Booth Status'])
+    df = pd.DataFrame(data, columns=['Customer', 'Arrival Time', 'Wait Time', 'Departure Time', 'Service Duration', 'Booth', 'Booth Status'])
     print(df.to_string(index=False))
+    
+    # Hitung dan tampilkan rata-rata waktu tunggu
+    if waiting_times:
+        avg_waiting_time = sum(waiting_times) / len(waiting_times)
+        print(f"\nRata-rata waktu tunggu pelanggan: {avg_waiting_time:.2f} menit")
+    else:
+        print("\nTidak ada data waktu tunggu yang tersedia.")
 
 if __name__ == '__main__':
     main()
