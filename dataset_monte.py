@@ -2,19 +2,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import random
 
 # Step 2: Load and Explore the Dataset
-file_path = "C:\Tugas\Tugas Nana\SEM 6\PEMODELAN, SIMULASI\simulated_call_centre.csv"
-df = pd.read_csv(file_path)
-
-# Ambil hanya 100 data pertama
-df = df.head(10000)
-
-# Ubah tipe data agar sesuai
-df['wait_length'] = df['wait_length'].astype(int)
-df['service_length'] = df['service_length'].astype(int)
-
-# Menampilkan informasi dataset
+df = pd.read_csv('C:\Tugas\Tugas Nana\SEM 6\PEMODELAN, SIMULASI\simulated_call_centre.csv')
 print("Dataset Head:")
 print(df.head())
 print("\nDataset Info:")
@@ -22,67 +13,69 @@ print(df.info())
 
 # Step 3: Implement the Queueing Simulation
 class QueueSimulation:
-    def __init__(self, num_agents):
+    def __init__(self, arrival_rate, service_rate, num_agents, simulation_time):
+        self.arrival_rate = arrival_rate
+        self.service_rate = service_rate
         self.num_agents = num_agents
+        self.simulation_time = simulation_time
+        self.queue = []
         self.wait_times = []
     
-    def simulate(self, wait_times, service_times):
-        servers = [0] * self.num_agents  # Simpan waktu kapan agen tersedia
-        for wait_time, service_time in zip(wait_times, service_times):
+    def simulate(self):
+        current_time = 0
+        servers = [0] * self.num_agents  # Waktu kapan agen akan bebas lagi
+        while current_time < self.simulation_time:
+            arrival_time = np.random.exponential(1/self.arrival_rate)
+            service_time = np.random.exponential(1/self.service_rate)
+            current_time += arrival_time
             available_agent = min(range(self.num_agents), key=lambda x: servers[x])
             
-            if servers[available_agent] <= wait_time:
-                servers[available_agent] = wait_time + service_time
+            if servers[available_agent] <= current_time:
+                servers[available_agent] = current_time + service_time
                 self.wait_times.append(0)  # Tidak menunggu jika ada agen tersedia
             else:
-                wait_time = servers[available_agent] - wait_time
+                wait_time = servers[available_agent] - current_time
                 self.wait_times.append(wait_time)
                 servers[available_agent] += service_time
     
     def get_average_wait_time(self):
         return np.mean(self.wait_times)
 
-# Step 4: Monte Carlo Simulation
-def monte_carlo_simulation(runs=100, num_agents=3):
-    results = []
-    for _ in range(runs):  
-        sim = QueueSimulation(num_agents)
-        
-        # Tambahkan variasi acak dalam waktu tunggu & layanan
-        wait_times = np.random.normal(df['wait_length'], 5)
-        service_times = np.random.normal(df['service_length'], 5)
-        
-        wait_times = np.clip(wait_times, 0, None)  # Pastikan tidak negatif
-        service_times = np.clip(service_times, 1, None)
+# Parameter simulasi
+arrival_rate = 5  # rata-rata kedatangan per menit
+service_rate = 6   # rata-rata layanan per menit
+num_agents = 3     # jumlah agen
+simulation_time = 120  # waktu simulasi dalam menit
 
-        sim.simulate(wait_times, service_times)
-        results.append(sim.get_average_wait_time())  
+sim = QueueSimulation(arrival_rate, service_rate, num_agents, simulation_time)
+sim.simulate()
 
-    return results
-
-# Jalankan simulasi Monte Carlo
-mc_results = monte_carlo_simulation()
-
-# Step 5: Performance Analysis & Visualization
-plt.hist(mc_results, bins=20, alpha=0.7, label='Monte Carlo Wait Time')
-plt.axvline(np.mean(mc_results), color='red', linestyle='dashed', linewidth=2, label='Mean Wait Time')
-plt.xlabel('Average Wait Time (seconds)')
-plt.ylabel('Frequency')
-plt.legend()
-plt.title('Monte Carlo Simulation of Wait Times')
+# Step 4: Performance Analysis & Visualization
+sns.histplot(sim.wait_times, bins=20, kde=True)
+plt.xlabel("Wait Time (minutes)")
+plt.ylabel("Frequency")
+plt.title("Distribution of Wait Times in Call Centre")
 plt.show()
 
-# Step 6: Optimize Number of Agents
-agents_range = range(1, 11)  # Coba dari 1 hingga 10 agen
+# Step 5: Modify Parameters and Optimize
+optimized_agents = 5  # coba meningkatkan jumlah agen
+sim_opt = QueueSimulation(arrival_rate, service_rate, optimized_agents, simulation_time)
+sim_opt.simulate()
+
+print(f"Average Wait Time (Original): {sim.get_average_wait_time():.2f} minutes")
+print(f"Average Wait Time (Optimized): {sim_opt.get_average_wait_time():.2f} minutes")
+
+# Step 6: Plot Additional Insights
+agents_range = range(1, 11)  # Mencoba dari 1 hingga 10 agen
 wait_times_avg = []
 
 for agents in agents_range:
-    sim_test = QueueSimulation(agents)
-    sim_test.simulate(df['wait_length'], df['service_length'])
+    sim_test = QueueSimulation(arrival_rate, service_rate, agents, simulation_time)
+    sim_test.simulate()
     wait_times_avg.append(sim_test.get_average_wait_time())
 
 plt.plot(agents_range, wait_times_avg, marker='o', linestyle='-')
 plt.xlabel("Number of Agents")
-plt.ylabel("Average Wait Time (seconds)")
+plt.ylabel("Average Wait Time (minutes)")
 plt.title("Effect of Increasing Agents on Wait Time")
 plt.show()
