@@ -4,12 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 RANDOM_SEED = 42
-NUM_TELLERS_2 = 2  # Simulasi dengan 2 teller
-NUM_TELLERS_4 = 4  # Simulasi dengan 4 teller
-ARRIVAL_RATE = 5  # Rata-rata waktu antar kedatangan pelanggan (detik)
-SIM_TIME = 300  # Waktu simulasi dalam detik
-VIP_PROB = 0.3  # Probabilitas pelanggan VIP
-TOTAL_CUSTOMERS = 100  # Jumlah total pelanggan
+NUM_TELLERS_2 = 2  
+NUM_TELLERS_4 = 4  
+ARRIVAL_RATE = 5  
+SIM_TIME = 300  
+VIP_PROB = 0.3  
+TOTAL_CUSTOMERS = 100  
 
 class Bank:
     def __init__(self, env, num_tellers):
@@ -26,6 +26,7 @@ class Bank:
             yield self.env.timeout(service_time)
             self.wait_times.append(self.env.now - arrival_time)
             print(f"Customer {customer['id']} (VIP: {customer['vip']}) waited {self.env.now - arrival_time:.2f} seconds.")
+            print(f"Customer {customer['id']} (VIP: {customer['vip']}) started service at {self.env.now:.2f} seconds.")
 
 def customer_generator(env, bank):
     for customer_id in range(1, TOTAL_CUSTOMERS + 1):
